@@ -1,0 +1,63 @@
+import cv2
+import numpy as np
+ 
+# define a video capture object 
+vid = cv2.VideoCapture(0)
+
+
+        
+  
+while(True): 
+      
+    # Capture the video frame by frame 
+    ret, frame = vid.read()
+
+    gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+
+    kernel_size = 5
+    blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
+
+    low_threshold = 50
+    high_threshold = 150
+    edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
+
+    rho = 1  # distance resolution in pixels of the Hough grid
+    theta = np.pi / 180  # angular resolution in radians of the Hough grid
+    threshold = 15  # minimum number of votes (intersections in Hough grid cell)
+    min_line_length = 50  # minimum number of pixels making up a line
+    max_line_gap = 20  # maximum gap in pixels between connectable line segments
+    line_image = np.copy(frame) * 0  # creating a blank to draw lines on
+
+    # Run Hough on edge detected image
+    # Output "lines" is an array containing endpoints of detected line segments
+    lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]),
+                        min_line_length, max_line_gap)
+
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+            cv2.line(line_image,(x1,y1),(x2,y2),(255,0,0),5)
+    left = []
+    right = []
+    for line in lines:
+        print(line)
+        x1, y1, x2, y2 = line.reshape(4)
+        parameters = np.polyfit((x1, x2), (y1, y2), 1)
+        slope = parameters[0]
+        y_int = parameters[1]
+        if slope < 0:
+            left.append((slope, y_int))
+        else:
+            right.append((slope, y_int))
+
+    # Draw the lines on the  image
+    lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
+
+    cv2.imshow("Detected Circle", lines_edges) 
+
+    if cv2.waitKey(1) & 0xFF == ord('q'): 
+            break
+  
+# After the loop release the cap object 
+vid.release() 
+# Destroy all the windows 
+cv2.destroyAllWindows()
